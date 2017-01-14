@@ -1,0 +1,164 @@
+---
+title: "Practical Machine Learning Course Project"
+output:
+  html_document:
+    keep_md: yes
+date: "Wednesday, December 29, 2016"
+---
+
+```{r setup, echo=FALSE}
+echo = TRUE                               # Always make code visible
+options(scipen = 1)                       # Turn off scientific notations for numbers
+knitr::opts_chunk$set(cache=TRUE)         # Caching is on by default
+```
+
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. This project uses data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). The goal of the project is to predict the manner in which they did the exercise (the "classe" variable in the training set).
+
+## Load Libraries
+```{r results='hide',message=FALSE,warning=FALSE}
+library(caret)
+library(randomForest)
+library(ggplot2)
+```
+
+## Load Raw Training and Test Data
+```{r}
+training.file <- "pml-training.csv"
+testing.file  <- "pml-testing.csv"
+
+# Check if the data files exist locally, if not retrieve
+if ( !file.exists(training.file) ) {
+  download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile=training.file)  
+}
+if ( !file.exists(testing.file) ) {
+  download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile=testing.file)  
+}
+
+# Load data with minimal cleanup
+training.raw <- read.csv(training.file, na.strings = c("NA", "#DIV/0!", ""))
+testing.raw  <- read.csv(testing.file,  na.strings = c("NA", "#DIV/0!", ""))
+```
+
+## Cleaning the Data
+```{r}
+dim(training.raw)       # Size of training data
+dim(testing.raw)        # Size of testing data
+```
+
+Check for variables with more than 50% NAs:
+```{r}
+NA_vars <- sapply(training.raw, function(x) {sum(is.na(x))}) >  0.5*dim(training.raw)[1]
+```
+
+The initial training data set is of size `r dim(training.raw)[1]` observations by `r dim(training.raw)[2]` variables. However there are `r sum(NA_vars)` variables with 50% or more of the observations missing. Interpolating such a large number of missing observations by imputing values seems unsatisfactory. Therefore we will exclude these variables:
+```{r}
+training.clean <- training.raw[,!NA_vars]
+dim(training.clean)                      # Size of partly cleaned non-NA training data
+```
+
+Next, check for and remove any variables which have zero or near zero variance predictors:
+```{r}
+NZP <- nearZeroVar(training.clean,saveMetrics=TRUE)
+training.clean <- training.clean[,!NZP$nzv]
+dim(training.clean)                     # Size of partly cleaned training data having removed NZ predictors
+```
+
+Examine the surviving variables
+```{r}
+str(training.clean)
+```
+
+Sanity check to see if any NAs left in the data set
+```{r}
+anyNA(training.clean)                  # No NAs left in training data set
+```
+
+The first variable "X" appears to be an index of the observations. The variable "user_name" seems to an id of the participant. The variables "raw_timestamp_part_1", "raw_timestamp_part_2" and "cvtd_timestamp" all seem to be date/time stamps. The variable "num_window" appears to be another index variable, perhaps for the group of observations within a particular time window for each participant. As these variables seem to be secondary to the recorded variables of interest they will therefore be removed from the subsequent analysis.
+```{r}
+training.clean <- training.clean[,-c(1:6)]
+dim(training.clean)                    # Final Size of cleaned training data
+```
+
+Preprocess the data to center and scale it
+```{r}
+preObj <- preProcess(training.clean[,-53], method=c("center","scale"))
+training.clean.pp <- data.frame(cbind(classe=training.clean[,53],predict(preObj, training.clean[,-53])))
+```
+
+Apply same series of cleanup steps to the testing data:
+```{r}
+testing.clean <- testing.raw[,!NA_vars]
+testing.clean <- testing.clean[,!NZP$nzv]
+testing.clean <- testing.clean[,-c(1:6)]
+testing.clean.pp <- data.frame(cbind(classe=testing.clean[,53],predict(preObj, testing.clean[,-53])))
+dim(testing.clean.pp)                 # Final Size of cleaned testing data (same number of vars as training.clean)
+```
+
+## Split the data
+Having got data cleaned up, now split it into a subset for training (70%) and an independent subset for data validation (30%)
+```{r}
+set.seed(8421)                         # Set seed to a particular value to ensure reproducibility
+inTrain   <- createDataPartition(training.clean.pp$classe, p=0.70, list=F)
+train <- training.clean.pp[inTrain, ]
+valid <- training.clean.pp[-inTrain, ]
+```
+
+## Model Building
+Run a random forest model on the cleaned up training data, using 10 fold cross validation.
+```{r}
+
+# Setup model parameters, fit basic Random Forest model
+fitCtrl <- trainControl(method = "cv", number=10)
+grid <- expand.grid(mtry=c(5,7,10,12,15,20,25,30))
+grid
+
+# This model fit takes a long time to run with default ntree=500. 
+# Check if model already saved and if so load it, otherwise calculate afresh
+if (file.exists("rf_model.rda")) {
+  load("rf_model.rda")
+} else {
+ rf_model <- train(classe ~ ., data = train, method = "rf", trControl = fitCtrl, tuneGrid=grid)
+ save(rf_model, file="rf_model.rda")
+}
+
+# OOB Error (as a percentage)
+OOB_error <- round(100*(1-sum(diag(rf_model$finalModel$confusion))/dim(train)[1]),2)
+OOB_error
+```
+
+## Fitted model
+```{r}
+# Characteristics of fitted model
+rf_model
+rf_model$finalModel
+
+# Relative Importance of top 30 variables
+plot(varImp(rf_model),30)
+
+# Show the relationship between top 3 variables
+qplot(roll_belt, yaw_belt, color=classe, data=train)
+qplot(roll_belt, pitch_forearm, color=classe, data=train)
+qplot(yaw_belt, pitch_forearm, color=classe, data=train)
+```
+
+## Out-of-sample error
+```{r}
+# Use the independent validation data to test the out of sample error via the prediction accuracy 
+valid_pred <- predict(rf_model, valid)
+confusionMatrix(valid_pred, valid$classe)
+
+# Out-of-sample error rate (as a percentage)
+OOS_error <- round(100*(1-mean(valid_pred == valid$classe)),2)
+OOS_error
+```
+
+## Conclusion
+The out-of-bag (OOB) error estimated via the cross validation within the training sample was `r OOB_error`%.
+However the unbiased out-of-sample error rate estimated from the independent sample was actually slightly smaller at `r OOS_error`%. 
+
+## Predictions on the hold-out Testing data set
+```{r}
+pred_test <- predict(rf_model, testing.clean.pp)
+pred_test
+```
