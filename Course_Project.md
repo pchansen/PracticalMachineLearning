@@ -1,5 +1,5 @@
 # Practical Machine Learning Course Project
-Wednesday, December 29, 2016  
+Saturday, January 14, 2017  
 
 
 
@@ -192,7 +192,7 @@ dim(testing.clean.pp)                 # Final Size of cleaned testing data (same
 ```
 
 ## Split the data
-Having got data cleaned up, now split it into a subset for training (70%) and an independent subset for data validation (30%)
+Having cleaned the data, now split it into a subset for training (70% of cases) and an independent subset for data validation (remaining 30% of cases):
 
 ```r
 set.seed(8421)                         # Set seed to a particular value to ensure reproducibility
@@ -202,11 +202,13 @@ valid <- training.clean.pp[-inTrain, ]
 ```
 
 ## Model Building
-Run a random forest model on the cleaned up training data, using 10 fold cross validation.
+LDA, Random Forest and GBM models were all run and tested. LDA and GBM models were significantly lesss accurate than the Random Forest model. Therefore the Random Forest model was the preferred modelling choice. For brevity, only the final Random Forest analysis is shown here. A Random Forest model was run on the cleaned up training data. 10-fold cross validation was used to create an in-sample error estimate of the error.
+
+## Fit Random Forest model with 10-fold cross validation
 
 ```r
-# Setup model parameters, fit basic Random Forest model
 fitCtrl <- trainControl(method = "cv", number=10)
+# Select a range of mtry parameters to try to fit over
 grid <- expand.grid(mtry=c(5,7,10,12,15,20,25,30))
 grid
 ```
@@ -225,7 +227,7 @@ grid
 
 ```r
 # This model fit takes a long time to run with default ntree=500. 
-# Check if model already saved and if so load it, otherwise calculate afresh
+# Check if the model has already been saved and if so load it, otherwise calculate afresh
 if (file.exists("rf_model.rda")) {
   load("rf_model.rda")
 } else {
@@ -298,14 +300,15 @@ rf_model$finalModel
 ```
 
 ```r
-# Relative Importance of top 30 variables
+# Show the relative importance of top 30 variables
 plot(varImp(rf_model),30)
 ```
 
 ![](Course_Project_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```r
-# Show the relationship between top 3 variables
+# Show the relationship between the top 3 variables
+# There is some separability between the classes but also some overlap
 qplot(roll_belt, yaw_belt, color=classe, data=train)
 ```
 
@@ -376,8 +379,7 @@ OOS_error
 ```
 
 ## Conclusion
-The out-of-bag (OOB) error estimated via the cross validation within the training sample was 0.53%.
-However the unbiased out-of-sample error rate estimated from the independent sample was actually slightly smaller at 0.42%. 
+From the bivariate plots separation of classes might be expected to be quite difficult. However it can be seen that the Random Forest model provides a very high degree of classification accuracy. The out-of-bag (OOB) error estimated via the 10-fold cross validation within the training sample was only 0.53%. However, the unbiased out-of-sample error rate estimated from the independent sample was actually slightly smaller at 0.42%. 
 
 ## Predictions on the hold-out Testing data set
 
