@@ -165,7 +165,8 @@ dim(training.clean)                      # Size of partly cleaned non-NA trainin
 training.clean &lt;- training.clean[,!NZP$nzv]
 dim(training.clean)                     # Size of partly cleaned training data having removed NZ predictors</code></pre>
 <pre><code>## [1] 19622    59</code></pre>
-<p>Examine the surviving variables</p>
+<p>This removes one more variable.</p>
+<p>Examine the surviving variables:</p>
 <pre class="r"><code>str(training.clean)</code></pre>
 <pre><code>## 'data.frame':    19622 obs. of  59 variables:
 ##  $ X                   : int  1 2 3 4 5 6 7 8 9 10 ...
@@ -227,14 +228,14 @@ dim(training.clean)                     # Size of partly cleaned training data h
 ##  $ magnet_forearm_y    : num  654 661 658 658 655 660 659 660 653 656 ...
 ##  $ magnet_forearm_z    : num  476 473 469 469 473 478 470 474 476 473 ...
 ##  $ classe              : Factor w/ 5 levels &quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...</code></pre>
-<p>Sanity check to see if any NAs left in the data set</p>
+<p>Sanity check to see if any NAs left in the data set:</p>
 <pre class="r"><code>anyNA(training.clean)                  # No NAs left in training data set</code></pre>
 <pre><code>## [1] FALSE</code></pre>
-<p>The first variable “X” appears to be an index of the observations. The variable “user_name” seems to an id of the participant. The variables “raw_timestamp_part_1”, “raw_timestamp_part_2” and “cvtd_timestamp” all seem to be date/time stamps. The variable “num_window” appears to be another index variable, perhaps for the group of observations within a particular time window for each participant. As these variables seem to be secondary to the recorded variables of interest they will therefore be removed from the subsequent analysis.</p>
+<p>The first variable “X” appears to be an index of the observations. The variable “user_name” is the id of the participant. The variables “raw_timestamp_part_1”, “raw_timestamp_part_2” and “cvtd_timestamp” all seem to be date/time stamps. The variable “num_window” appears to be another index variable, perhaps for the group of observations within a particular time window for each participant. As these variables seem to be secondary to the recorded variables of interest they will therefore be removed from the subsequent analysis.</p>
 <pre class="r"><code>training.clean &lt;- training.clean[,-c(1:6)]
 dim(training.clean)                    # Final Size of cleaned training data</code></pre>
 <pre><code>## [1] 19622    53</code></pre>
-<p>Preprocess the data to center and scale it</p>
+<p>Preprocess the data to center and scale it:</p>
 <pre class="r"><code>preObj &lt;- preProcess(training.clean[,-53], method=c(&quot;center&quot;,&quot;scale&quot;))
 training.clean.pp &lt;- data.frame(cbind(classe=training.clean[,53],predict(preObj, training.clean[,-53])))</code></pre>
 <p>Apply same series of cleanup steps to the testing data:</p>
@@ -384,7 +385,7 @@ OOS_error</code></pre>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
-<p>From the bivariate plots separation of classes might be expected to be quite difficult. However it can be seen that the Random Forest model provides a very high degree of classification accuracy. The out-of-bag (OOB) error estimated via the 10-fold cross validation within the training sample was only 0.53%. However, the unbiased out-of-sample error rate estimated from the independent sample was actually slightly smaller at 0.42%.</p>
+<p>From the bivariate plots separation of classes might be expected to be quite difficult. However it can be seen that the Random Forest model provides a very high degree of classification accuracy. The out-of-bag (OOB) error estimated via the 10-fold cross validation within the training sample was 0.53%. The unbiased out-of-sample error rate estimated from the independent sample is consistent with this and was actually slightly smaller at 0.42%.</p>
 </div>
 <div id="predictions-on-the-hold-out-testing-data-set" class="section level2">
 <h2>Predictions on the hold-out Testing data set</h2>

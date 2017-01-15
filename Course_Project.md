@@ -79,8 +79,9 @@ dim(training.clean)                     # Size of partly cleaned training data h
 ```
 ## [1] 19622    59
 ```
+This removes one more variable.
 
-Examine the surviving variables
+Examine the surviving variables:
 
 ```r
 str(training.clean)
@@ -149,7 +150,7 @@ str(training.clean)
 ##  $ classe              : Factor w/ 5 levels "A","B","C","D",..: 1 1 1 1 1 1 1 1 1 1 ...
 ```
 
-Sanity check to see if any NAs left in the data set
+Sanity check to see if any NAs left in the data set:
 
 ```r
 anyNA(training.clean)                  # No NAs left in training data set
@@ -159,7 +160,7 @@ anyNA(training.clean)                  # No NAs left in training data set
 ## [1] FALSE
 ```
 
-The first variable "X" appears to be an index of the observations. The variable "user_name" seems to an id of the participant. The variables "raw_timestamp_part_1", "raw_timestamp_part_2" and "cvtd_timestamp" all seem to be date/time stamps. The variable "num_window" appears to be another index variable, perhaps for the group of observations within a particular time window for each participant. As these variables seem to be secondary to the recorded variables of interest they will therefore be removed from the subsequent analysis.
+The first variable "X" appears to be an index of the observations. The variable "user_name" is the id of the participant. The variables "raw_timestamp_part_1", "raw_timestamp_part_2" and "cvtd_timestamp" all seem to be date/time stamps. The variable "num_window" appears to be another index variable, perhaps for the group of observations within a particular time window for each participant. As these variables seem to be secondary to the recorded variables of interest they will therefore be removed from the subsequent analysis.
 
 ```r
 training.clean <- training.clean[,-c(1:6)]
@@ -170,7 +171,7 @@ dim(training.clean)                    # Final Size of cleaned training data
 ## [1] 19622    53
 ```
 
-Preprocess the data to center and scale it
+Preprocess the data to center and scale it:
 
 ```r
 preObj <- preProcess(training.clean[,-53], method=c("center","scale"))
@@ -379,7 +380,7 @@ OOS_error
 ```
 
 ## Conclusion
-From the bivariate plots separation of classes might be expected to be quite difficult. However it can be seen that the Random Forest model provides a very high degree of classification accuracy. The out-of-bag (OOB) error estimated via the 10-fold cross validation within the training sample was only 0.53%. However, the unbiased out-of-sample error rate estimated from the independent sample was actually slightly smaller at 0.42%. 
+From the bivariate plots separation of classes might be expected to be quite difficult. However it can be seen that the Random Forest model provides a very high degree of classification accuracy. The out-of-bag (OOB) error estimated via the 10-fold cross validation within the training sample was 0.53%. The unbiased out-of-sample error rate estimated from the independent sample is consistent with this and was actually slightly smaller at 0.42%. 
 
 ## Predictions on the hold-out Testing data set
 
